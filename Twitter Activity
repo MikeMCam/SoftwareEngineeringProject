@@ -1,0 +1,68 @@
+import tweepy
+import numpy as np
+from textblob import TextBlob
+
+consumer_key = 'xZVsZWqc6hHkWRNcsy9rgCX8U'
+consumer_secret = 'iNih0KakbpgHGeXqwXbsslGF9K29tbGveUqDPS6rT56ESs05ZK'
+
+access_token = '702611257367646208-aGCEPCZ12EV9DlI50ZyLLeuW5pis0uw'
+access_token_secret = 'mRYtUiFukCScPhau3iLFAbrJ4jg4I8FD9yeJGdt75wb22'
+
+auth = tweepy.OAuthHandler(consumer_key,consumer_secret)
+auth.set_access_token(access_token,access_token_secret)
+
+api = tweepy.API(auth)
+
+def is_english(text):
+  if text.detect_language() == 'en':
+    return True
+  return False
+    
+def tweet_analysis(query):
+  tweets = tweepy.Cursor(api.search, q=query + " -filter:retweets").items(20)
+      
+  subjectivities = []
+  polarities = []
+  
+  for tweet in tweets:
+    phrase = TextBlob(tweet.text)
+        
+    if not is_english(phrase):
+      phrase = TextBlob(str(phrase.translate(to='en')))
+          
+    if phrase.sentiment.polarity != 0.0 and phrase.sentiment.subjectivity != 0.0:
+      polarities.append(phrase.sentiment.polarity)
+      subjectivities.append(phrase.sentiment.subjectivity)
+          
+    print('Tweet: ' + tweet.text)
+    print('Polarity: ' + str(phrase.sentiment.polarity) + ' \ Subjectivity: ' + str(phrase.sentiment.subjectivity))
+    print('...............................')
+     
+  return{'polarity': polarities, 'subjectivity':subjectivities}
+
+def get_polarity_mean(valid_tweets):
+  return np.mean(valid_tweets['polarity'])
+
+def print_result(mean):
+  if mean > 0.0:
+    print('POSITIVE')
+  elif mean == 0.0:
+    print('NEUTRAL')
+  else:
+    print('NEGATIVE')
+    
+def get_weighted_polaritty_mean(valid_tweets):
+  return np.average(valid_tweets['polarity'],weights=valid_tweets['subjectivity'])
+
+def get_polarity_mean(valid_tweets):
+  return np.mean(valid_tweets['polarity'])
+
+if __name__ == "__main__":
+  query = input("Enter a query to find: ")
+  analysis = tweet_analysis(query)
+  
+  print('WEIGHTED MEAN: ' + str(get_weighted_polarity_mean(analysis)))
+  print_result(get_weighted_polarity_mean(analysis))
+  
+  print(' MEAN: ' + str(get_polarity_mean(analysis)))
+  print_result(get_polarity_mean(analysis))
